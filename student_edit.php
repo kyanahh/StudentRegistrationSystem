@@ -16,10 +16,35 @@ if(isset($_SESSION["logged_in"])){
     $textaccount = "Account";
 }
 
-$firstname = $lastname = $gender = $email = $phone = $course = $address = $errorMessage = "";
-$yearnow = date("Y");
+$firstname = $lastname = $gender = $email = $phone = $course = $address = $admissionyear  = $errorMessage = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if (isset($_GET["student_id"])) {
+    $student_id = $_GET["student_id"];
+
+    $query = "SELECT * FROM students WHERE student_id = '$student_id'";
+
+    $res = $connection->query($query);
+
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+
+        $student_id = $row["student_id"];
+        $firstname = $row["first_name"];
+        $lastname = $row["last_name"];
+        $email = $row["email"];
+        $phone = $row["contact_number"];
+        $address = $row["address"];
+        $admissionyear = $row["admission_year"];
+        $gender = $row["gender"]; 
+        $course = $row["course_id"];  
+    } else {
+        $errorMessage = "Student not found.";
+    }
+} else {
+    $errorMessage = "Student ID is missing.";
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($student_id)) {
     $firstname =  ucwords($_POST["firstname"]);
     $lastname =  ucwords($_POST["lastname"]);
     $phone = $_POST["phone"];
@@ -28,16 +53,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $address = ucwords($_POST["address"]);
     $course = $_POST["course"];
 
-    // Insert the user data into the database
-    $insertQuery = "INSERT INTO students (first_name, last_name, gender, email, 
-    contact_number, address, admission_year, course_id) VALUES ('$firstname', '$lastname', '$gender', 
-    '$email', '$phone', '$address', '$yearnow', '$course')";
+    // Update the user data into the database
+    $insertQuery = "UPDATE students
+                    SET 
+                        first_name = '$firstname',
+                        last_name = '$lastname',
+                        gender = '$gender',
+                        email = '$email',
+                        contact_number = '$phone',
+                        address = '$address',
+                        course_id = '$course'
+                        WHERE student_id = '$student_id'";
     $result = $connection->query($insertQuery);
 
     if (!$result) {
         $errorMessage = "Invalid query " . $connection->error;
     } else {
-        $_SESSION['success'] = "Student added successfully.";
+        $_SESSION['success'] = "Student information updated successfully.";
         header("Location: students.php");
         exit();
     }
@@ -146,12 +178,12 @@ if ($courseResult && $courseResult->num_rows > 0) {
                 </div>
             </nav>
 
-            <!-- Add Students -->
+            <!-- Edit Students -->
             <div class="px-3 pt-4">
                 <form method="POST" action="<?php htmlspecialchars("SELF_PHP"); ?>">
 
                     <div class="row mt-1">
-                        <h2 class="fs-5">Add New Student</h2>
+                        <h2 class="fs-5">Edit Student</h2>
                     </div>
 
                     <div class="row">
@@ -169,6 +201,21 @@ if ($courseResult && $courseResult->num_rows > 0) {
                         </div>
                     </div>
                     
+                    <div class="row mb-3 mt-2">
+                        <div class="col-sm-2">
+                            <label class="form-label mt-2 ps-3">Student ID<span class="text-danger">*</span></label>
+                        </div>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" name="student_id" id="student_id" value="<?php echo $student_id; ?>" readonly>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label mt-2 ps-3">Admission Year<span class="text-danger">*</span></label>
+                        </div>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" name="admissionyear" id="admissionyear" value="<?php echo $admissionyear; ?>" readonly>
+                        </div>
+                    </div>
+
                     <div class="row mb-3 mt-2">
                         <div class="col-sm-2">
                             <label class="form-label mt-2 ps-3">First Name<span class="text-danger">*</span></label>
@@ -226,7 +273,7 @@ if ($courseResult && $courseResult->num_rows > 0) {
                             <label class="form-label mt-2 px-3">Address<span class="text-danger">*</span></label>
                         </div>
                         <div class="col-sm-10">
-                            <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter home address" required></textarea>
+                            <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter home address" required><?php echo $address; ?></textarea>
                         </div>
                     </div>
 
@@ -238,7 +285,7 @@ if ($courseResult && $courseResult->num_rows > 0) {
                 </form>
 
             </div>
-            <!-- End of Add Students -->
+            <!-- End of Edit Students -->
 
         </div>
     
