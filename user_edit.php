@@ -16,73 +16,59 @@ if(isset($_SESSION["logged_in"])){
     $textaccount = "Account";
 }
 
-$firstname = $lastname = $gender = $email = $phone = $course = $address = $admissionyear  = $errorMessage = "";
+$full_name = $email = $newpassword = $usertype = $errorMessage = "";
+$currentDateTime = date("Y-m-d H:i:s");
 
-if (isset($_GET["student_id"])) {
-    $student_id = $_GET["student_id"];
+if (isset($_GET["user_id"])) {
+    $user_id = $_GET["user_id"];
 
-    $query = "SELECT * FROM students WHERE student_id = '$student_id'";
+    $query = "SELECT * FROM users WHERE user_id = '$user_id'";
 
     $res = $connection->query($query);
 
     if ($res && $res->num_rows > 0) {
         $row = $res->fetch_assoc();
 
-        $student_id = $row["student_id"];
-        $firstname = $row["first_name"];
-        $lastname = $row["last_name"];
+        $user_id = $row["user_id"];
+        $full_name = $row["full_name"];
         $email = $row["email"];
-        $phone = $row["contact_number"];
-        $address = $row["address"];
-        $admissionyear = $row["admission_year"];
-        $gender = $row["gender"]; 
-        $course = $row["course_id"];  
+        $usertype = $row["role"];
     } else {
-        $errorMessage = "Student not found.";
+        $errorMessage = "User not found.";
     }
 } else {
-    $errorMessage = "Student ID is missing.";
+    $errorMessage = "User ID is missing.";
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($student_id)) {
-    $firstname =  ucwords($_POST["firstname"]);
-    $lastname =  ucwords($_POST["lastname"]);
-    $phone = $_POST["phone"];
-    $gender = $_POST["gender"];
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($user_id)) {
+    $full_name =  ucwords($_POST["full_name"]);
     $email = $_POST["email"];
-    $address = ucwords($_POST["address"]);
-    $course = $_POST["course"];
+    $usertype = $_POST["usertype"];
+    $newpassword = $_POST["newpassword"];
 
     // Update the user data into the database
-    $insertQuery = "UPDATE students
+    $insertQuery = "UPDATE users
                     SET 
-                        first_name = '$firstname',
-                        last_name = '$lastname',
-                        gender = '$gender',
+                        full_name = '$full_name',
                         email = '$email',
-                        contact_number = '$phone',
-                        address = '$address',
-                        course_id = '$course'
-                        WHERE student_id = '$student_id'";
+                        role = '$usertype'";
+
+                        // Append password to query only if it's provided
+    if (!empty($newpassword)) {
+        $insertQuery .= ", password = '$newpassword'";
+    }
+
+    $insertQuery .= " WHERE user_id = '$user_id'";
+
+                        
     $result = $connection->query($insertQuery);
 
     if (!$result) {
         $errorMessage = "Invalid query " . $connection->error;
     } else {
-        $_SESSION['success'] = "Student information updated successfully.";
-        header("Location: students.php");
+        $_SESSION['success'] = "User information updated successfully.";
+        header("Location: users.php");
         exit();
-    }
-}
-
-$courseOptions = "";
-$courseQuery = "SELECT course_id, course_name FROM courses ORDER BY course_name ASC";
-$courseResult = $connection->query($courseQuery);
-
-if ($courseResult && $courseResult->num_rows > 0) {
-    while ($row = $courseResult->fetch_assoc()) {
-        $selected = ($course == $row['course_id']) ? "selected" : "";
-        $courseOptions .= "<option value='" . $row['course_id'] . "' $selected>" . $row['course_name'] . "</option>";
     }
 }
 
@@ -184,12 +170,12 @@ if ($courseResult && $courseResult->num_rows > 0) {
                 </div>
             </nav>
 
-            <!-- Edit Students -->
+            <!-- Add Admin/Staff -->
             <div class="px-3 pt-4">
                 <form method="POST" action="<?php htmlspecialchars("SELF_PHP"); ?>">
 
                     <div class="row mt-1">
-                        <h2 class="fs-5">Edit Student</h2>
+                        <h2 class="fs-5">Add New Admin/Staff</h2>
                     </div>
 
                     <div class="row">
@@ -206,53 +192,32 @@ if ($courseResult && $courseResult->num_rows > 0) {
                             ?>
                         </div>
                     </div>
+
+                    <div class="row mb-3 mt-2">
+                        <div class="col-sm-2">
+                            <label class="form-label mt-2 ps-3">User ID<span class="text-danger">*</span></label>
+                        </div>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" name="user_id" id="user_id" value="<?php echo $user_id; ?>" readonly>
+                        </div>
+                    </div>
                     
                     <div class="row mb-3 mt-2">
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 ps-3">Student ID<span class="text-danger">*</span></label>
+                            <label class="form-label mt-2 ps-3">Full Name<span class="text-danger">*</span></label>
                         </div>
                         <div class="col-sm-4">
-                            <input type="text" class="form-control" name="student_id" id="student_id" value="<?php echo $student_id; ?>" readonly>
+                            <input type="text" class="form-control" name="full_name" id="full_name" value="<?php echo $full_name; ?>" placeholder="Enter full name" required>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 ps-3">Admission Year<span class="text-danger">*</span></label>
+                            <label class="form-label mt-2 px-3">Role<span class="text-danger">*</span></label>
                         </div>
                         <div class="col-sm-4">
-                            <input type="text" class="form-control" name="admissionyear" id="admissionyear" value="<?php echo $admissionyear; ?>" readonly>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3 mt-2">
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 ps-3">First Name<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-4">
-                            <input type="text" class="form-control" name="firstname" id="firstname" value="<?php echo $firstname; ?>" placeholder="Enter first name" required>
-                        </div>
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Last Name<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-4">
-                            <input type="text" class="form-control" name="lastname" id="lastname" value="<?php echo $lastname; ?>" placeholder="Enter last name" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3 mt-2">
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Gender<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-4">
-                            <select id="gender" name="gender" class="form-select" required>
-                                <option value="" disabled selected>Select Gender</option>
-                                <option value="M" <?php echo ($gender === "M") ? "selected" : ""; ?>>Male</option>
-                                <option value="F" <?php echo ($gender === "F") ? "selected" : ""; ?>>Female</option>
+                            <select id="usertype" name="usertype" class="form-select" required>
+                                <option value="" disabled selected>Select Role</option>
+                                <option value="admin" <?php echo ($usertype === "admin") ? "selected" : ""; ?>>Admin</option>
+                                <option value="staff" <?php echo ($usertype === "staff") ? "selected" : ""; ?>>Staff</option>
                             </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Phone<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-4">
-                            <input type="text" class="form-control" name="phone" id="phone" value="<?php echo $phone; ?>" placeholder="Enter phone number" required>
                         </div>
                     </div>
 
@@ -264,22 +229,10 @@ if ($courseResult && $courseResult->num_rows > 0) {
                             <input type="email" class="form-control" name="email" id="email" value="<?php echo $email; ?>" placeholder="Enter email address" required>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Course<span class="text-danger">*</span></label>
+                            <label class="form-label mt-2 px-3">New Password</label>
                         </div>
                         <div class="col-sm-4">
-                            <select id="course" name="course" class="form-select" required>
-                                <option value="" disabled selected>Select Course</option>
-                                <?php echo $courseOptions; ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3 mt-2">
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Address<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-10">
-                            <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter home address" required><?php echo $address; ?></textarea>
+                            <input type="password" class="form-control" name="newpassword" id="newpassword" value="<?php echo $newpassword; ?>" placeholder="Enter new password">
                         </div>
                     </div>
 
@@ -291,7 +244,7 @@ if ($courseResult && $courseResult->num_rows > 0) {
                 </form>
 
             </div>
-            <!-- End of Edit Students -->
+            <!-- End of Add Users -->
 
         </div>
     

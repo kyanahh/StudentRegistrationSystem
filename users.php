@@ -114,37 +114,39 @@ if(isset($_SESSION["logged_in"])){
                 </div>
             </nav>
 
-            <!-- List of Courses -->
+            <!-- List of Users -->
             <div class="px-3">
                 <div class="row">
                     <div class="col-sm-2">
-                        <h2 class="fs-5 mt-1 ms-2">Courses</h2>
+                        <h2 class="fs-5 mt-1 ms-2">Admin / Staff</h2>
                     </div>
                     <div class="col input-group mb-3">
                         <input type="text" class="form-control" id="searchInput" placeholder="Search" aria-describedby="button-addon2" oninput="search()">
                     </div>
                     <div class="col-sm-1">
-                        <button class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#addCourseModal"><i class="bi bi-plus-lg text-white"></i></button>
+                    <a href="add_user.php" class="btn btn-success px-4"><i class="bi bi-plus-lg text-white"></i></a>
                     </div>
                 </div>
                 
                 <div class="card" style="height: 520px;">
                     <div class="card-body">
                         <div class="table-responsive" style="height: 420px;">
-                            <table id="courses-table" class="table table-bordered table-hover">
+                            <table id="user-table" class="table table-bordered table-hover">
                                 <thead class="table-light" style="position: sticky; top: 0;">
                                     <tr>
                                         <th scope="col">#</th>
-                                        <th scope="col">Course ID</th>
-                                        <th scope="col">College</th>
-                                        <th scope="col">Course</th>
+                                        <th scope="col">User ID</th>
+                                        <th scope="col">Full Name</th>
+                                        <th scope="col">Email</th>
+                                        <th scope="col">Role</th>
+                                        <th scope="col">Created At</th>
                                         <th scope="col" class="text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody class="table-group-divider">
                                 <?php
                                     // Query the database to fetch user data
-                                    $result = $connection->query("SELECT * FROM courses ORDER BY course_id DESC");
+                                    $result = $connection->query("SELECT * FROM users ORDER BY user_id DESC");
 
                                     if ($result->num_rows > 0) {
                                         $count = 1; 
@@ -152,20 +154,22 @@ if(isset($_SESSION["logged_in"])){
                                         while ($row = $result->fetch_assoc()) {
                                             echo '<tr>';
                                             echo '<td>' . $count . '</td>';
-                                            echo '<td>' . $row['course_id'] . '</td>';
-                                            echo '<td>' . $row['college'] . '</td>';
-                                            echo '<td>' . $row['course_name'] . '</td>';
+                                            echo '<td>' . $row['user_id'] . '</td>';
+                                            echo '<td>' . $row['full_name'] . '</td>';
+                                            echo '<td>' . $row['email'] . '</td>';
+                                            echo '<td>' . $row['role'] . '</td>';
+                                            echo '<td>' . $row['created_at'] . '</td>';
                                             echo '<td>';
                                             echo '<div class="d-flex justify-content-center">';
-                                            echo '<button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editCourseModal" onclick="loadCourseData(' . $row['course_id'] . ')">Edit</button>';
-                                            echo '<button class="btn btn-danger" onclick="deleteCourse(' . $row['course_id'] . ')">Delete</button>';
+                                            echo '<button class="btn btn-primary me-2" onclick="editUser(' . $row['user_id'] . ')">Edit</button>';
+                                            echo '<button class="btn btn-danger" onclick="deleteUser(' . $row['user_id'] . ')">Delete</button>';
                                             echo '</div>';
                                             echo '</td>';
                                             echo '</tr>';
                                             $count++; 
                                         }
                                     } else {
-                                        echo '<tr><td colspan="5">No courses found.</td></tr>';
+                                        echo '<tr><td colspan="5">No admin/staff found.</td></tr>';
                                     }
                                 ?>
                                 </tbody>
@@ -176,7 +180,7 @@ if(isset($_SESSION["logged_in"])){
                     <!-- Search results will be displayed here -->
                 <div id="search-results"></div>
             </div>
-            <!-- End of List of Courses -->
+            <!-- End of List of Users -->
         </div>
 
     </div>
@@ -189,7 +193,7 @@ if(isset($_SESSION["logged_in"])){
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body">
-                Course deleted successfully.
+                User deleted successfully.
             </div>
         </div>
     </div>
@@ -203,40 +207,12 @@ if(isset($_SESSION["logged_in"])){
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Are you sure you want to delete this course?
+                Are you sure you want to delete this user?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
             </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Course Modal -->
-    <div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addCourseModalLabel">Add New Course</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addCourseForm">
-                        <div class="mb-3">
-                            <label for="collegeTypeInput" class="form-label">College</label>
-                            <input type="text" class="form-control" id="collegeTypeInput" name="college" placeholder="Enter college name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="courseTypeInput" class="form-label">Course Name</label>
-                            <input type="text" class="form-control" id="courseTypeInput" name="course" placeholder="Enter course name" required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveCourseButton">Save</button>
-                </div>
             </div>
         </div>
     </div>
@@ -249,32 +225,6 @@ if(isset($_SESSION["logged_in"])){
                     <!-- Message will be injected here -->
                 </div>
                 <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Course Modal -->
-    <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editCourseModalLabel">Edit Course</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editCourseForm">
-                        <input type="hidden" id="editCourseId" name="course_id">
-                        <div class="mb-3">
-                            <label for="editCollegeType" class="form-label">College Name</label>
-                            <input type="text" class="form-control" id="editCollegeType" name="college" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editCourseType" class="form-label">Course Name</label>
-                            <input type="text" class="form-control" id="editCourseType" name="course" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </form>
-                </div>
             </div>
         </div>
     </div>
@@ -307,12 +257,12 @@ if(isset($_SESSION["logged_in"])){
 
             // Make an AJAX request to fetch search results
             $.ajax({
-                url: 'search_courses.php', // Replace with the actual URL to your search script
+                url: 'search_user.php', // Replace with the actual URL to your search script
                 method: 'POST',
                 data: { query: query },
                 success: function(data) {
                     // Update the user-table with the search results
-                    $('#courses-table tbody').html(data);
+                    $('#user-table tbody').html(data);
                 },
                 error: function(xhr, status, error) {
                     console.error("Error during search request:", error);
@@ -320,141 +270,48 @@ if(isset($_SESSION["logged_in"])){
             });
         }
 
-        //--------------------------- Add Course ---------------------------//
-        $(document).ready(function () {
-            $('#saveCourseButton').on('click', function () {
-                const courseType = $('#courseTypeInput').val().trim();
-                const collegeType = $('#collegeTypeInput').val().trim();
-
-                // Validation
-                if (collegeType === '' || courseType === '') {
-                    showDynamicToast('Please fill in all required fields.', 'warning');
-                    return;
-                }
-
-                // Send data to the server
-                $.ajax({
-                    url: 'add_course.php',
-                    type: 'POST',
-                    data: {
-                        coursetype: courseType,
-                        collegetype: collegeType
-                    },
-                    success: function (response) {
-                        const result = JSON.parse(response);
-
-                        if (result.success) {
-                            showDynamicToast('Course added successfully!', 'success');
-                            setTimeout(() => location.reload(), 2000);
-                        } else {
-                            showDynamicToast('Error adding course: ' + result.message, 'danger');
-                        }
-                    },
-                    error: function () {
-                        showDynamicToast('An error occurred while adding the course.', 'danger');
-                    },
-                });
-            });
-        });
-
-        //--------------------------- Delete ---------------------------//
-        let courseIdToDelete = null;
-
-        function deleteCourse(course_id) {
-            courseIdToDelete = course_id; // Store the course ID to delete
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
+        //---------------------------Edit User---------------------------//
+        function editUser(user_id) {
+            window.location = "user_edit.php?user_id=" + user_id;
         }
 
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (courseIdToDelete) {
+        //---------------------------Delete User---------------------------//
+        let userIdToDelete = null;
+
+        function deleteUser(user_id) {
+            userIdToDelete = user_id; // Store the user ID to delete
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show(); // Show the modal
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (userIdToDelete) {
                 $.ajax({
-                    url: 'delete_course.php',
+                    url: 'delete_user.php',
                     method: 'POST',
-                    data: { course_id: courseIdToDelete },
+                    data: { user_id: userIdToDelete },
                     dataType: 'json',
                     success: function (response) {
                         if (response.success) {
-                            showDynamicToast('Course deleted successfully!', 'success');
-                            setTimeout(() => location.reload(), 3000); // Wait 3 seconds before refreshing
+                            showDeleteToast();
+                            setTimeout(function () {
+                                location.reload();
+                            }, 3000); // Wait 3 seconds before refreshing
                         } else {
-                            showDynamicToast('Error deleting course: ' + response.error, 'danger');
+                            alert(response.error);
                         }
                     },
                     error: function () {
-                        showDynamicToast('An error occurred while deleting the course.', 'danger');
-                    },
+                        alert('Error deleting user');
+                    }
                 });
             }
         });
 
-        //--------------------------- Edit  ---------------------------//
-            // Load service data into the modal
-            function loadCourseData(course_id) {
-                $.ajax({
-                    url: 'get_course.php',
-                    type: 'POST',
-                    data: { course_id: course_id },
-                    success: function (response) {
-                        const result = JSON.parse(response);
-
-                        if (result.success) {
-                            $('#editCourseId').val(result.data.course_id);
-                            $('#editCollegeType').val(result.data.college);
-                            $('#editCourseType').val(result.data.course_name);
-                        } else {
-                            showDynamicToast('Error fetching course data: ' + result.message, 'danger');
-                        }
-                    },
-                    error: function () {
-                        showDynamicToast('An error occurred while fetching the course data.', 'danger');
-                    },
-                });
-            }
-
-            $('#editCourseForm').on('submit', function (e) {
-                e.preventDefault();
-
-                const courseId = $('#editCourseId').val();
-                const courseType = $('#editCourseType').val();
-                const collegeType = $('#editCollegeType').val();
-
-                $.ajax({
-                    url: 'update_course.php',
-                    type: 'POST',
-                    data: {
-                        course_id: courseId,
-                        coursetype: courseType,
-                        collegetype: collegeType
-                    },
-                    success: function (response) {
-                        const result = JSON.parse(response);
-
-                        if (result.success) {
-                            $('#editCourseModal').modal('hide');
-                            showDynamicToast('Course updated successfully!', 'success');
-                            setTimeout(() => location.reload(), 2000);
-                        } else {
-                            showDynamicToast('Error updating course: ' + result.message, 'danger');
-                        }
-                    },
-                    error: function () {
-                        showDynamicToast('An error occurred while updating the course.', 'danger');
-                    },
-                });
-            });
-
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Check if the session has the update success flag set
-            <?php if (isset($_SESSION['update_success'])): ?>
-                var updateToast = new bootstrap.Toast(document.getElementById('updateToast'));
-                updateToast.show();
-                <?php unset($_SESSION['update_success']); // Clear the session variable after showing the toast ?>
-            <?php endif; ?>
-        });
+        function showDeleteToast() {
+            const deleteToast = new bootstrap.Toast(document.getElementById('deleteToast'));
+            deleteToast.show();
+        }
     </script>
     
 </body>

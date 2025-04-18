@@ -16,21 +16,36 @@ if(isset($_SESSION["logged_in"])){
     $textaccount = "Account";
 }
 
-$errorMessage = ""; // Initialize error message variable
+$full_name = $email = $password = $usertype = $errorMessage = "";
+$currentDateTime = date("Y-m-d H:i:s");
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $useremail = $_SESSION["email"];
-    $oldpass = $_POST["oldpass"];
-    $newpass = $_POST["newpass"];
-    $result = $connection->query("SELECT password FROM users WHERE email = '$useremail'");
-    $record = $result->fetch_assoc();
-    $stored_password = $record["password"];
-    
-    if ($oldpass == $stored_password) {
-        $connection->query("UPDATE users SET password = '$newpass' WHERE email = '$useremail'");
-        $errorMessage = "Password changed successfully"; // Set success message
+    $full_name =  ucwords($_POST["full_name"]);
+    $email = $_POST["email"];
+    $password = $_POST["password"];
+    $usertype = ucwords($_POST["usertype"]);
+
+    // Check if the email already exists in the database
+    $emailExistsQuery = "SELECT * FROM users WHERE email = '$email'";
+    $emailExistsResult = $connection->query($emailExistsQuery);
+
+    if ($emailExistsResult->num_rows > 0) {
+        $errorMessage = "User already exists";
+        $full_name = $email = $password = $usertype = "";
     } else {
-        $errorMessage = "Old password does not match"; // Set error message
+        // Insert the user data into the database
+        $insertQuery = "INSERT INTO users (full_name, email, password, role, 
+        created_at) VALUES ('$full_name', '$email', '$password', 
+        '$usertype', '$currentDateTime')";
+        $result = $connection->query($insertQuery);
+
+        if (!$result) {
+            $errorMessage = "Invalid query " . $connection->error;
+        } else {
+            $_SESSION['success'] = "User added successfully.";
+            header("Location: users.php");
+            exit();
+        }
     }
 }
 
@@ -50,7 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 
-<div class="main-container d-flex">
+    <div class="main-container d-flex">
         <div class="sidebar" id="side_nav">
             <div class="header-box px-2 pt-3 pb-4 d-flex justify-content-between">
                 <h1 class="fs-4 ps-3 pt-3">
@@ -126,90 +141,104 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </div>
 
-        <div class="content bg-light">
+        <div class="content bg-light px-3">
             <nav class="navbar navbar-expand-md navbar-dark">
                 <div class="container-fluid">
                 </div>
             </nav>
 
-            <!-- Settings -->
-            <div class="px-3 pt-4">                
+            <!-- Add Admin/Staff -->
+            <div class="px-3 pt-4">
                 <form method="POST" action="<?php htmlspecialchars("SELF_PHP"); ?>">
 
-                    <div class="row ms-2 mt-1">
-                        <h2 class="fs-5">Settings</h2>
+                    <div class="row mt-1">
+                        <h2 class="fs-5">Add New Admin/Staff</h2>
                     </div>
 
-                    <div class="ms-2 col-sm-7">
-                        <?php
-                            if (!empty($errorMessage)) {
-                                echo "
-                                <div class='alert alert-warning alert-dismissible fade show mt-2 ms-4' role='alert'>
-                                    <strong>$errorMessage</strong>
-                                    <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
-                                </div>
-                                ";
-                            }
-                        ?>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <?php
+                                if (!empty($errorMessage)) {
+                                    echo "
+                                    <div class='alert alert-warning alert-dismissible fade show mt-2 ms-3' role='alert'>
+                                        <strong>$errorMessage</strong>
+                                        <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+                                    </div>
+                                    ";
+                                }
+                            ?>
+                        </div>
                     </div>
                     
-                    <div class="row mb-3 ms-2 mt-2">
+                    <div class="row mb-3 mt-2">
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Old Password</label>
+                            <label class="form-label mt-2 ps-3">Full Name<span class="text-danger">*</span></label>
                         </div>
-                        <div class="col-sm-5">
-                            <input type="password" class="form-control" name="oldpass" id="oldpass" placeholder="Enter old password" required>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" name="full_name" id="full_name" value="<?php echo $full_name; ?>" placeholder="Enter full name" required>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label mt-2 px-3">Role<span class="text-danger">*</span></label>
+                        </div>
+                        <div class="col-sm-4">
+                            <select id="usertype" name="usertype" class="form-select" required>
+                                <option value="" disabled selected>Select Role</option>
+                                <option value="admin" <?php echo ($usertype === "admin") ? "selected" : ""; ?>>Admin</option>
+                                <option value="staff" <?php echo ($usertype === "staff") ? "selected" : ""; ?>>Staff</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="row mb-3 ms-2 mt-2">
+                    <div class="row mb-3 mt-2">
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">New Password</label>
+                            <label class="form-label mt-2 px-3">Email<span class="text-danger">*</span></label>
                         </div>
-                        <div class="col-sm-5">
-                            <input type="password" class="form-control" name="newpass" id="newpass" placeholder="Enter new password" required>
+                        <div class="col-sm-4">
+                            <input type="email" class="form-control" name="email" id="email" value="<?php echo $email; ?>" placeholder="Enter email address" required>
                         </div>
-                    </div>
-
-                    <!-- Show Password Checkbox -->
-                    <div class="row mb-3 ms-5 ps-5">
-                        <div class="col-sm-5 ms-5 ps-5">
-                            <input class="ms-2" type="checkbox" id="showPassword" onclick="togglePassword()"> Show Password
+                        <div class="col-sm-2">
+                            <label class="form-label mt-2 px-3">Password<span class="text-danger">*</span></label>
+                        </div>
+                        <div class="col-sm-4">
+                            <input type="password" class="form-control" name="password" id="password" value="<?php echo $password; ?>" placeholder="Enter password" required>
                         </div>
                     </div>
 
                     <div class="row mb-3 mt-2 float-end">
                         <div class="col-sm-5">
-                            <button type="submit" class="btn btn-success px-5" style="margin-right: 455px;">Save</button>
+                            <button type="submit" class="btn btn-success px-5">Save</button>
                         </div>
                     </div>
                 </form>
 
             </div>
-            <!-- End of Settings -->
+            <!-- End of Add Users -->
 
         </div>
     
     </div>
+
+    <?php if (isset($_SESSION['success'])): ?>
+        <div id="toast" class="toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-4" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 9999;">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <?= $_SESSION['success']; ?>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+        <script>
+            const toastEl = document.getElementById('toast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 }); // 3 seconds
+            toast.show();
+        </script>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
  
-    <script>
-        function togglePassword() {
-            var oldPass = document.getElementById("oldpass");
-            var newPass = document.getElementById("newpass");
-            if (oldPass.type === "password" && newPass.type === "password") {
-                oldPass.type = "text";
-                newPass.type = "text";
-            } else {
-                oldPass.type = "password";
-                newPass.type = "password";
-            }
-        }
-    </script>
-    
 </body>
 </html>

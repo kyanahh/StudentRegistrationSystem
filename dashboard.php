@@ -49,6 +49,12 @@ if(isset($_SESSION["logged_in"])){
                 </li>
 
                 <li>
+                    <a href="users.php" class="text-decoration-none px-3 py-2 d-block">
+                    <i class="bi bi-person-fill me-2"></i>Admin / Staff
+                    </a>
+                </li>
+
+                <li>
                     <a href="students.php" class="text-decoration-none px-3 py-2 d-block">
                     <i class="bi bi-person-square me-2"></i>Students
                     </a>
