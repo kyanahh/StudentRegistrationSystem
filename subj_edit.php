@@ -18,6 +18,38 @@ if(isset($_SESSION["logged_in"])){
 
 $subject_name = $units = $faculty = $schedtime = $classday = $errorMessage = "";
 
+if (isset($_GET["subject_id"])) {
+    $subject_id = $_GET["subject_id"];
+
+    $query = "SELECT subjects.*, classdays.day_name,
+                schedule.timesched, faculty.full_name 
+                FROM subjects INNER JOIN classdays 
+                ON subjects.day_id = classdays.day_id 
+                INNER JOIN schedule 
+                ON subjects.sched_id = schedule.sched_id 
+                INNER JOIN faculty 
+                ON subjects.faculty_id = faculty.faculty_id 
+                WHERE subject_id = '$subject_id'";
+
+    $res = $connection->query($query);
+
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+
+        $subject_id = $row["subject_id"];
+        $subject_name = $row["subject_name"];
+        $units = $row["units"];
+        $faculty = $row["faculty_id"];
+        $schedtime = $row["sched_id"];
+        $classday = $row["day_id"];
+
+    } else {
+        $errorMessage = "Subject not found.";
+    }
+} else {
+    $errorMessage = "Subject ID is missing.";
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $subject_name =  ucwords($_POST["subject_name"]);
     $units = $_POST["units"];
@@ -25,27 +57,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $schedtime = $_POST["schedtime"];
     $classday = $_POST["classday"];
 
-    // Check if the subject schedule already exists in the database
-    $checkQuery = "SELECT * FROM subjects WHERE sched_id = '$schedtime' AND day_id = '$classday'";
-    $checkResult = $connection->query($checkQuery);
+    // Update the user data into the database
+    $insertQuery = "UPDATE subjects
+                    SET 
+                        subject_name = '$subject_name',
+                        units = '$units',
+                        faculty_id = '$faculty',
+                        sched_id = '$schedtime',
+                        day_id = '$classday'
+                    WHERE subject_id = '$subject_id'";
+    $result = $connection->query($insertQuery);
 
-    if ($checkResult && $checkResult->num_rows > 0) {
-        $errorMessage = "Subject schedule already exists";
-        $subject_name = $units = $faculty = $schedtime = $classday = "";
+    if (!$result) {
+        $errorMessage = "Invalid query " . $connection->error;
     } else {
-        // Insert the user data into the database
-        $insertQuery = "INSERT INTO subjects (subject_name, units, faculty_id, sched_id, 
-        day_id) VALUES ('$subject_name', '$units', '$faculty', 
-        '$schedtime', '$classday')";
-        $result = $connection->query($insertQuery);
-
-        if (!$result) {
-            $errorMessage = "Invalid query " . $connection->error;
-        } else {
-            $_SESSION['success'] = "Subject added successfully.";
-            header("Location: subjects.php");
-            exit();
-        }
+        $_SESSION['success'] = "Subject information updated successfully.";
+        header("Location: subjects.php");
+        exit();
     }
 }
 
@@ -265,27 +293,10 @@ if ($schedtimeResult && $schedtimeResult->num_rows > 0) {
     
     </div>
 
-    <?php if (isset($_SESSION['success'])): ?>
-        <div id="toast" class="toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-4" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 9999;">
-            <div class="d-flex">
-                <div class="toast-body">
-                    <?= $_SESSION['success']; ?>
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-        <script>
-            const toastEl = document.getElementById('toast');
-            const toast = new bootstrap.Toast(toastEl, { delay: 3000 }); // 3 seconds
-            toast.show();
-        </script>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
- 
+
 </body>
 </html>

@@ -108,14 +108,221 @@ if(isset($_SESSION["logged_in"])){
             </div>
         </div>
 
-        
-    
+        <div class="content bg-light">
+            <nav class="navbar navbar-expand-md navbar-dark">
+                <div class="container-fluid">
+                </div>
+            </nav>
+
+            <!-- List of Subj -->
+            <div class="px-3">
+                <div class="row">
+                    <div class="col-sm-2">
+                        <h2 class="fs-5 mt-1 ms-2">Subjects</h2>
+                    </div>
+                    <div class="col input-group mb-3">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search" aria-describedby="button-addon2" oninput="search()">
+                    </div>
+                    <div class="col-sm-1">
+                    <a href="add_subject.php" class="btn btn-success px-4"><i class="bi bi-plus-lg text-white"></i></a>
+                    </div>
+                </div>
+                
+                <div class="card" style="height: 520px;">
+                    <div class="card-body">
+                        <div class="table-responsive" style="height: 420px;">
+                            <table id="subject-table" class="table table-bordered table-hover">
+                                <thead class="table-light" style="position: sticky; top: 0;">
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Subject ID</th>
+                                        <th scope="col">Subject Name</th>
+                                        <th scope="col">Units</th>
+                                        <th scope="col">Faculty</th>
+                                        <th scope="col">Schedule</th>
+                                        <th scope="col">Day</th>
+                                        <th scope="col" class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table-group-divider">
+                                <?php
+                                    // Query the database to fetch user data
+                                    $result = $connection->query("SELECT subjects.*, classdays.day_name,
+                                    schedule.timesched, faculty.full_name 
+                                    FROM subjects INNER JOIN classdays 
+                                    ON subjects.day_id = classdays.day_id 
+                                    INNER JOIN schedule 
+                                    ON subjects.sched_id = schedule.sched_id 
+                                    INNER JOIN faculty 
+                                    ON subjects.faculty_id = faculty.faculty_id 
+                                    ORDER BY subject_id DESC");
+
+                                    if ($result->num_rows > 0) {
+                                        $count = 1; 
+
+                                        while ($row = $result->fetch_assoc()) {
+                                            echo '<tr>';
+                                            echo '<td>' . $count . '</td>';
+                                            echo '<td>' . $row['subject_id'] . '</td>';
+                                            echo '<td>' . $row['subject_name'] . '</td>';
+                                            echo '<td>' . $row['units'] . '</td>';
+                                            echo '<td>' . $row['full_name'] . '</td>';
+                                            echo '<td>' . $row['timesched'] . '</td>';
+                                            echo '<td>' . $row['day_name'] . '</td>';
+                                            echo '<td>';
+                                            echo '<div class="d-flex justify-content-center">';
+                                            echo '<button class="btn btn-primary me-2" onclick="editSubj(' . $row['subject_id'] . ')">Edit</button>';
+                                            echo '<button class="btn btn-danger" onclick="deleteSubj(' . $row['subject_id'] . ')">Delete</button>';
+                                            echo '</div>';
+                                            echo '</td>';
+                                            echo '</tr>';
+                                            $count++; 
+                                        }
+                                    } else {
+                                        echo '<tr><td colspan="5">No subject found.</td></tr>';
+                                    }
+                                ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                    <!-- Search results will be displayed here -->
+                <div id="search-results"></div>
+            </div>
+            <!-- End of List of Subj -->
+        </div>
+
     </div>
-    
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container">
+        <div id="deleteToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <small>Just now</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+            Subject deleted successfully.
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this subject?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="dynamicToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div id="toastBody" class="toast-body">
+                    <!-- Message will be injected here -->
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
- 
+
+    <script>
+        //--------------------------- Dynamic Toast Notification ---------------------------//
+        function showDynamicToast(message, type) {
+            const toastElement = document.getElementById('dynamicToast');
+            const toastBody = document.getElementById('toastBody');
+
+            // Set the message
+            toastBody.textContent = message;
+
+            // Set the type (e.g., success, error)
+            toastElement.className = `toast align-items-center border-0 text-bg-${type}`;
+
+            // Show the toast
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+
+        //---------------------------Search Results---------------------------//
+        function search() {
+            const query = document.getElementById("searchInput").value;
+
+            // Make an AJAX request to fetch search results
+            $.ajax({
+                url: 'search_subj.php', // Replace with the actual URL to your search script
+                method: 'POST',
+                data: { query: query },
+                success: function(data) {
+                    // Update the user-table with the search results
+                    $('#subject-table tbody').html(data);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error during search request:", error);
+                }
+            });
+        }
+
+        //---------------------------Edit Subj---------------------------//
+        function editSubj(subject_id) {
+            window.location = "subj_edit.php?subject_id=" + subject_id;
+        }
+
+        //---------------------------Delete Subj---------------------------//
+        let subjIdToDelete = null;
+
+        function deleteSubj(subject_id) {
+            subjIdToDelete = subject_id; // Store the subj ID to delete
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show(); // Show the modal
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (subjIdToDelete) {
+                $.ajax({
+                    url: 'delete_subj.php',
+                    method: 'POST',
+                    data: { subject_id: subjIdToDelete },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.success) {
+                            showDeleteToast();
+                            setTimeout(function () {
+                                location.reload();
+                            }, 3000); // Wait 3 seconds before refreshing
+                        } else {
+                            alert(response.error);
+                        }
+                    },
+                    error: function () {
+                        alert('Error deleting subject');
+                    }
+                });
+            }
+        });
+
+        function showDeleteToast() {
+            const deleteToast = new bootstrap.Toast(document.getElementById('deleteToast'));
+            deleteToast.show();
+        }
+    </script>
+    
 </body>
 </html>
