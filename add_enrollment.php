@@ -16,107 +16,49 @@ if(isset($_SESSION["logged_in"])){
     $textaccount = "Account";
 }
 
-$subject_name = $units = $faculty = $schedtime = $classday = $errorMessage = "";
-
-if (isset($_GET["subject_id"])) {
-    $subject_id = $_GET["subject_id"];
-
-    $query = "SELECT subjects.*, classdays.day_name,
-                schedule.timesched, faculty.full_name 
-                FROM subjects INNER JOIN classdays 
-                ON subjects.day_id = classdays.day_id 
-                INNER JOIN schedule 
-                ON subjects.sched_id = schedule.sched_id 
-                INNER JOIN faculty 
-                ON subjects.faculty_id = faculty.faculty_id 
-                WHERE subject_id = '$subject_id'";
-
-    $res = $connection->query($query);
-
-    if ($res && $res->num_rows > 0) {
-        $row = $res->fetch_assoc();
-
-        $subject_id = $row["subject_id"];
-        $subject_name = $row["subject_name"];
-        $units = $row["units"];
-        $faculty = $row["faculty_id"];
-        $schedtime = $row["sched_id"];
-        $classday = $row["day_id"];
-
-    } else {
-        $errorMessage = "Subject not found.";
-    }
-} else {
-    $errorMessage = "Subject ID is missing.";
-}
+$student_id = $subject = $semester = $academic_year = $errorMessage = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $subject_name =  ucwords($_POST["subject_name"]);
-    $units = $_POST["units"];
-    $faculty = $_POST["faculty"];
-    $schedtime = $_POST["schedtime"];
-    $classday = $_POST["classday"];
+    $student_id = $_POST["student_id"];
+    $subject = $_POST["subject"];
+    $semester = $_POST["semester"];
+    $academic_year = $_POST["academic_year"];
 
-    // Check if the subject schedule already exists in the database
-    $checkQuery = "SELECT * FROM subjects WHERE sched_id = '$schedtime' AND day_id = '$classday'";
+    // Check if the enrolled subject already exists in the database
+    $checkQuery = "SELECT * FROM enrollments WHERE student_id = '$student_id' 
+                    AND subject_id = '$subject' 
+                    AND semester = '$semester' 
+                    AND academic_year = '$academic_year'
+                    ";
     $checkResult = $connection->query($checkQuery);
 
     if ($checkResult && $checkResult->num_rows > 0) {
-        $errorMessage = "Subject schedule already exists";
-        $subject_name = $units = $faculty = $schedtime = $classday = "";
+        $errorMessage = "Subject already enrolled to the student";
+        $student_id = $subject = $semester = $academic_year = "";
     } else {
-        // Update the user data into the database
-        $insertQuery = "UPDATE subjects
-        SET 
-            subject_name = '$subject_name',
-            units = '$units',
-            faculty_id = '$faculty',
-            sched_id = '$schedtime',
-            day_id = '$classday'
-        WHERE subject_id = '$subject_id'";
+        // Insert the user data into the database
+        $insertQuery = "INSERT INTO enrollments (student_id, subject_id, semester, academic_year) 
+        VALUES ('$student_id', '$subject', '$semester', '$academic_year')";
         $result = $connection->query($insertQuery);
 
         if (!$result) {
             $errorMessage = "Invalid query " . $connection->error;
         } else {
-            $_SESSION['success'] = "Subject information updated successfully.";
-            header("Location: subjects.php");
+            $_SESSION['success'] = "Subject enrolled successfully.";
+            header("Location: enrollments.php");
             exit();
         }
-
     }
 }
 
-$facultyOptions = "";
-$facultyQuery = "SELECT faculty_id, full_name FROM faculty ORDER BY full_name ASC";
-$facultyResult = $connection->query($facultyQuery);
+$subjOptions = "";
+$subjQuery = "SELECT subject_id, subject_name FROM subjects ORDER BY subject_name ASC";
+$subjResult = $connection->query($subjQuery);
 
-if ($facultyResult && $facultyResult->num_rows > 0) {
-    while ($row = $facultyResult->fetch_assoc()) {
-        $selected = ($faculty == $row['faculty_id']) ? "selected" : "";
-        $facultyOptions .= "<option value='" . $row['faculty_id'] . "' $selected>" . $row['full_name'] . "</option>";
-    }
-}
-
-$classdayOptions = "";
-$classdayQuery = "SELECT day_id, day_name FROM classdays";
-$classdayResult = $connection->query($classdayQuery);
-
-if ($classdayResult && $classdayResult->num_rows > 0) {
-    while ($row = $classdayResult->fetch_assoc()) {
-        $selected = ($classday == $row['day_id']) ? "selected" : "";
-        $classdayOptions .= "<option value='" . $row['day_id'] . "' $selected>" . $row['day_name'] . "</option>";
-    }
-}
-
-$schedtimeOptions = "";
-$schedtimeQuery = "SELECT sched_id, timesched FROM schedule";
-$schedtimeResult = $connection->query($schedtimeQuery);
-
-if ($schedtimeResult && $schedtimeResult->num_rows > 0) {
-    while ($row = $schedtimeResult->fetch_assoc()) {
-        $selected = ($schedtime == $row['sched_id']) ? "selected" : "";
-        $schedtimeOptions .= "<option value='" . $row['sched_id'] . "' $selected>" . $row['timesched'] . "</option>";
+if ($subjResult && $subjResult->num_rows > 0) {
+    while ($row = $subjResult->fetch_assoc()) {
+        $selected = ($subject == $row['subject_id']) ? "selected" : "";
+        $subjOptions .= "<option value='" . $row['subject_id'] . "' $selected>" . $row['subject_name'] . "</option>";
     }
 }
 
@@ -218,12 +160,12 @@ if ($schedtimeResult && $schedtimeResult->num_rows > 0) {
                 </div>
             </nav>
 
-            <!-- Edit Subject -->
+            <!-- Add Enrollment -->
             <div class="px-3 pt-4">
                 <form method="POST" action="<?php htmlspecialchars("SELF_PHP"); ?>">
 
                     <div class="row mt-1">
-                        <h2 class="fs-5">Add New Subject</h2>
+                        <h2 class="fs-5">Enroll Subject</h2>
                     </div>
 
                     <div class="row">
@@ -243,49 +185,38 @@ if ($schedtimeResult && $schedtimeResult->num_rows > 0) {
                     
                     <div class="row mb-3 mt-2">
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 ps-3">Subject Name<span class="text-danger">*</span></label>
+                            <label class="form-label mt-2 ps-3">Student Number<span class="text-danger">*</span></label>
                         </div>
                         <div class="col-sm-4">
-                            <input type="text" class="form-control" name="subject_name" id="subject_name" value="<?php echo $subject_name; ?>" placeholder="Enter subject name" required>
+                            <input type="text" class="form-control" name="student_id" id="student_id" value="<?php echo $student_id; ?>" placeholder="Enter student number" required>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Units<span class="text-danger">*</span></label>
+                            <label class="form-label mt-2 px-3">Subject<span class="text-danger">*</span></label>
                         </div>
                         <div class="col-sm-4">
-                            <input type="number" class="form-control" name="units" id="units" value="<?php echo $units; ?>" placeholder="Enter units" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3 mt-2">
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Faculty<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-4">
-                            <select id="faculty" name="faculty" class="form-select" required>
-                                <option value="" disabled selected>Select Faculty</option>
-                                <?php echo $facultyOptions; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Time Schedule<span class="text-danger">*</span></label>
-                        </div>
-                        <div class="col-sm-4">
-                            <select id="schedtime" name="schedtime" class="form-select" required>
-                                <option value="" disabled selected>Select Time Schedule</option>
-                                <?php echo $schedtimeOptions; ?>
+                            <select id="subject" name="subject" class="form-select" required>
+                                <option value="" disabled selected>Select Subject</option>
+                                <?php echo $subjOptions; ?>
                             </select>
                         </div>
                     </div>
 
                     <div class="row mb-3 mt-2">
                         <div class="col-sm-2">
-                            <label class="form-label mt-2 px-3">Class Day<span class="text-danger">*</span></label>
+                            <label class="form-label mt-2 px-3">Semester<span class="text-danger">*</span></label>
                         </div>
                         <div class="col-sm-4">
-                            <select id="classday" name="classday" class="form-select" required>
-                                <option value="" disabled selected>Select Class Day</option>
-                                <?php echo $classdayOptions; ?>
+                            <select id="semester" name="semester" class="form-select" required>
+                                <option value="" disabled selected>Select Semester</option>
+                                <option value="1st" <?php echo ($semester === "1st") ? "selected" : ""; ?>>1st</option>
+                                <option value="2nd" <?php echo ($semester === "2nd") ? "selected" : ""; ?>>2nd</option>
                             </select>
+                        </div>
+                        <div class="col-sm-2">
+                            <label class="form-label mt-2 px-3">Academic Year<span class="text-danger">*</span></label>
+                        </div>
+                        <div class="col-sm-4">
+                            <input type="text" class="form-control" name="academic_year" id="academic_year" value="<?php echo $academic_year; ?>" placeholder="e.g. 2024-2025" required>
                         </div>
                     </div>
 
@@ -297,16 +228,33 @@ if ($schedtimeResult && $schedtimeResult->num_rows > 0) {
                 </form>
 
             </div>
-            <!-- End of Edit Users -->
+            <!-- End of Add Enrollments -->
 
         </div>
     
     </div>
 
+    <?php if (isset($_SESSION['success'])): ?>
+        <div id="toast" class="toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-4" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 9999;">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <?= $_SESSION['success']; ?>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+        <script>
+            const toastEl = document.getElementById('toast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 }); // 3 seconds
+            toast.show();
+        </script>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+ 
 </body>
 </html>
