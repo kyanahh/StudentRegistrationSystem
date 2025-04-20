@@ -45,6 +45,7 @@ if (isset($_POST['query'])) {
             echo '<td>' . $row['course_name'] . '</td>';
             echo '<td>';
             echo '<div class="d-flex justify-content-center">';
+            echo '<button class="btn btn-info me-2" onclick="viewSubj(' . $row['student_id'] . ')">View Enrollment</button>';
             echo '<button class="btn btn-primary me-2" onclick="editStudent(' . $row['student_id'] . ')">Edit</button>';
             echo '<button class="btn btn-danger" onclick="deleteStudent(' . $row['student_id'] . ')">Delete</button>';
             echo '</div>';

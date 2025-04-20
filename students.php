@@ -173,6 +173,7 @@ if(isset($_SESSION["logged_in"])){
                                             echo '<td>' . $row['course_name'] . '</td>';
                                             echo '<td>';
                                             echo '<div class="d-flex justify-content-center">';
+                                            echo '<button class="btn btn-info me-2" onclick="viewSubj(' . $row['student_id'] . ')">View Enrollment</button>';
                                             echo '<button class="btn btn-primary me-2" onclick="editStudent(' . $row['student_id'] . ')">Edit</button>';
                                             echo '<button class="btn btn-danger" onclick="deleteStudent(' . $row['student_id'] . ')">Delete</button>';
                                             echo '</div>';
@@ -271,6 +272,11 @@ if(isset($_SESSION["logged_in"])){
         //---------------------------Edit Students---------------------------//
         function editStudent(student_id) {
             window.location = "student_edit.php?student_id=" + student_id;
+        }
+
+        //---------------------------View Student Subjects---------------------------//
+        function viewSubj(student_id) {
+            window.location = "student_view.php?student_id=" + student_id;
         }
 
         //---------------------------Delete Students---------------------------//

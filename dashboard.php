@@ -16,6 +16,36 @@ if(isset($_SESSION["logged_in"])){
     $textaccount = "Account";
 }
 
+// Query data
+$maleCount = $connection->query("SELECT COUNT(*) AS total FROM students WHERE gender = 'M'")->fetch_assoc()['total'];
+$femaleCount = $connection->query("SELECT COUNT(*) AS total FROM students WHERE gender = 'F'")->fetch_assoc()['total'];
+$totalStudents = $connection->query("SELECT COUNT(*) AS total FROM students")->fetch_assoc()['total'];
+$totalFaculty = $connection->query("SELECT COUNT(*) AS total FROM faculty")->fetch_assoc()['total'];
+$totalCourses = $connection->query("SELECT COUNT(*) AS total FROM courses")->fetch_assoc()['total'];
+$totalSubjects = $connection->query("SELECT COUNT(*) AS total FROM subjects")->fetch_assoc()['total'];
+
+// Query to count students enrolled per subject
+$subjectEnrollmentsQuery = "SELECT subjects.subject_name, COUNT(enrollments.student_id) as total 
+    FROM enrollments 
+    INNER JOIN subjects ON enrollments.subject_id = subjects.subject_id 
+    GROUP BY subjects.subject_name 
+    ORDER BY total DESC"; // Optional: Sort from most to least
+$subjectEnrollmentsResult = $connection->query($subjectEnrollmentsQuery);
+
+// Students per academic year
+$studentsPerYear = [];
+$result = $connection->query("SELECT academic_year, COUNT(DISTINCT student_id) as total FROM enrollments GROUP BY academic_year ORDER BY academic_year DESC");
+while ($row = $result->fetch_assoc()) {
+    $studentsPerYear[] = $row;
+}
+
+// Students per semester
+$studentsPerSemester = [];
+$result = $connection->query("SELECT semester, COUNT(DISTINCT student_id) as total FROM enrollments GROUP BY semester");
+while ($row = $result->fetch_assoc()) {
+    $studentsPerSemester[] = $row;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -108,7 +138,103 @@ if(isset($_SESSION["logged_in"])){
             </div>
         </div>
 
-        
+        <div class="content bg-light p-3">
+
+            <div class="row g-4">
+                <!-- Gender Cards -->
+                <div class="col-md-4">
+                    <div class="card text-center shadow">
+                        <div class="card-body">
+                        <h5 class="card-title">Male Students</h5>
+                        <p class="fs-4 fw-bold text-primary"><?php echo $maleCount; ?></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center shadow">
+                        <div class="card-body">
+                        <h5 class="card-title">Female Students</h5>
+                        <p class="fs-4 fw-bold text-pink"><?php echo $femaleCount; ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Summary Cards -->
+                <div class="col-md-4">
+                    <div class="card text-center shadow">
+                        <div class="card-body">
+                        <h5 class="card-title">Total Students</h5>
+                        <p class="fs-4 fw-bold text-success"><?php echo $totalStudents; ?></p>
+                        </div>
+                    </div>
+                </div>
+            
+            </div>
+
+            <div class="row g-4 mt-2">
+                <div class="col-md-4">
+                    <div class="card text-center shadow">
+                        <div class="card-body">
+                        <h5 class="card-title">Faculty Members</h5>
+                        <p class="fs-4 fw-bold text-warning"><?php echo $totalFaculty; ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card text-center shadow">
+                        <div class="card-body">
+                        <h5 class="card-title">Courses</h5>
+                        <p class="fs-4 fw-bold text-secondary"><?php echo $totalCourses; ?></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center shadow">
+                        <div class="card-body">
+                        <h5 class="card-title">Subjects</h5>
+                        <p class="fs-4 fw-bold text-dark"><?php echo $totalSubjects; ?></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row pt-5">
+                <div class="col-md-5">
+                    <div class="card shadow">
+                        <div class="card-body">
+                        <h5 class="card-title text-center">Students per Academic Year</h5>
+                        <canvas id="yearChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <?php
+                    if ($subjectEnrollmentsResult->num_rows > 0):
+                        while($row = $subjectEnrollmentsResult->fetch_assoc()):
+                ?>
+                    <div class="col-md-3">
+                        <div class="card text-center shadow">
+                            <div class="card-body">
+                                <h6 class="card-title"><?php echo $row['subject_name']; ?></h6>
+                                <p class="fs-5 fw-bold text-info"><?php echo $row['total']; ?> students</p>
+                            </div>
+                        </div>
+                    </div>
+                <?php
+                        endwhile;
+                    else:
+                ?>
+                    <div class="col-12">
+                        <div class="alert alert-warning text-center">No enrollment data found.</div>
+                    </div>
+                <?php endif; ?>
+
+            </div>
+
+
+        </div>
     
     </div>
     
@@ -116,6 +242,44 @@ if(isset($_SESSION["logged_in"])){
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ChartJS Script -->
+    <script>
+    const yearData = <?php echo json_encode($studentsPerYear); ?>;
+    const semesterData = <?php echo json_encode($studentsPerSemester); ?>;
+
+    // Academic Year Chart
+    const yearLabels = yearData.map(item => item.academic_year);
+    const yearCounts = yearData.map(item => item.total);
+
+    new Chart(document.getElementById('yearChart'), {
+        type: 'bar',
+        data: {
+        labels: yearLabels,
+        datasets: [{
+            label: 'Number of Students',
+            data: yearCounts,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+        }]
+        }
+    });
+
+    // Semester Chart
+    const semesterLabels = semesterData.map(item => item.semester);
+    const semesterCounts = semesterData.map(item => item.total);
+
+    new Chart(document.getElementById('semesterChart'), {
+        type: 'doughnut',
+        data: {
+        labels: semesterLabels,
+        datasets: [{
+            label: 'Number of Students',
+            data: semesterCounts,
+            backgroundColor: ['#4CAF50', '#FF9800', '#F44336']
+        }]
+        }
+    });
+    </script>
  
 </body>
 </html>

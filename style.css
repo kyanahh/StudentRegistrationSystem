@@ -6,7 +6,8 @@ body{
     background: #002e0d;
     min-width: 250px;
     max-width: 250px;
-    height: 100vh; 
+    min-height: 100vh;
+    height: auto;
     transition: all 0.3s;
     }
 
@@ -47,3 +48,8 @@ body{
       max-height: 420px;
       overflow-y: auto;
     }
+
+    .main-container {
+      display: flex;
+      align-items: stretch;
+  }
